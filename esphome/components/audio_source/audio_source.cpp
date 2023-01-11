@@ -19,7 +19,7 @@ void AudioSource::add_audio_callback(std::function<void(AudioStream * )> &&callb
 
 std::string AudioSource::unique_id() { return ""; }
 
-int AudioStream::get_sample_count() {
+int32_t AudioStream::get_sample_count() {
   return audio_buffer_size / (channels * (bits_per_sample /8));
 }
 
