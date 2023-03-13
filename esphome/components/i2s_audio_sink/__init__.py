@@ -12,9 +12,7 @@ DEPENDENCIES = ["esp32"]
 
 i2s_audio_sink_ns = cg.esphome_ns.namespace("i2s_audio_sink")
 
-I2SAudioSink = i2s_audio_sink_ns.class_(
-    "I2SAudioSink", cg.Component
-)
+I2SAudioSink = i2s_audio_sink_ns.class_("I2SAudioSink", cg.Component)
 
 CONF_AUDIO_SOURCE = "audio_source"
 CONF_I2S_DOUT_PIN = "i2s_dout_pin"

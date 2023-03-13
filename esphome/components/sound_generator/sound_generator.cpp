@@ -4,6 +4,8 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 
+#include <esp_task_wdt.h>
+
 namespace esphome {
 namespace sound_generator {
 
@@ -16,7 +18,7 @@ void SoundGenerator::setup() {
 
   //time of a full audio buffer 
 
-  int32_t max_samples = (AUDIO_STREAM_BUFFER_SIZE )/(stream.bits_per_sample/8);
+  int32_t max_samples = (AUDIO_STREAM_BUFFER_SIZE )/(stream.channels * stream.bits_per_sample/8);
   ESP_LOGD(TAG,"max samples = %d", max_samples); 
 
   float full_buffer_time = (float)max_samples/ (float)stream.audio_frequency ;
@@ -40,41 +42,63 @@ void SoundGenerator::setup() {
   ESP_LOGD(TAG,"buffer_size = %d", buffer_size); 
 
   for(int q = 0; q< buffer_size ; q++){
-    float float_sample = sound_volume_ *  sin(6.28318530718 * waves_per_buffer * ((float) q / (float) buffer_size )) ; 
-
-      int32_t sample = 0;
+    float float_sample = sound_volume_ *  sin(6.28318530718 * (float)waves_per_buffer * ((float) q / (float) buffer_size )) ; 
 
       switch (stream.bits_per_sample)
       {
       case 8:
-        ((int8_t * )stream.audio_buffer)[q] = float_sample * (float) ((1<<7) -1);
+        {
+          int8_t s=  float_sample * (float) ((1<<7) -1);
+
+
+          ((int8_t * )stream.audio_buffer)[stream.channels *q] = s;// __builtin_bswap16(s);
+
+          if (stream.channels ==2){
+            ((int8_t * )stream.audio_buffer)[stream.channels *q +1] = s;// __builtin_bswap16(s);
+
+          }
+        }
         break;
       case 16:
-        ((int16_t * )stream.audio_buffer)[q] = float_sample * (float) ((1<<15) -1);
-        break;
+          {
+          int16_t s=  float_sample * (float) ((1<<15) -1);
+
+
+          ((int16_t * )stream.audio_buffer)[stream.channels *q] = s;// __builtin_bswap16(s);
+
+          if (stream.channels ==2){
+            ((int16_t * )stream.audio_buffer)[stream.channels *q +1] = s;// __builtin_bswap16(s);
+
+          }
+        }
+        break;   
       case 24:
         break;
       case 32:
-        ((int32_t * )stream.audio_buffer)[q] = float_sample * (float) ((1<<31) -1);
+        {
+          int32_t s= float_sample * (float) ((1<<31) -1);
+
+
+          ((int32_t * )stream.audio_buffer)[stream.channels *q] = s;// __builtin_bswap16(s);
+
+          if (stream.channels ==2){
+            ((int32_t * )stream.audio_buffer)[stream.channels *q +1] = s;// __builtin_bswap16(s);
+
+          }
+        }
         break;
       
       default:
         break;
       } 
 
-      //ESP_LOGD(TAG,"%d",((int16_t * )stream.audio_buffer)[q]);
+
   }
   ESP_LOGD(TAG,"%d",((int16_t * )stream.audio_buffer)[buffer_size-1]);
 
-  stream.audio_buffer_size = buffer_size*(stream.bits_per_sample/8);
+  stream.audio_buffer_size = buffer_size*stream.channels *(stream.bits_per_sample/8);
 
   full_buffer_time_ = (uint32_t)(((float)buffer_size / (float)stream.audio_frequency  )*1000000.0);
-
-  ESP_LOGD(TAG,"%f %d", full_buffer_time , buffer_size); 
-
-  publish_audio();
-
-  ESP_LOGD(TAG,"end %f %d", full_buffer_time , buffer_size); 
 
   next_time_ = micros() +  full_buffer_time_;
 
@@ -84,11 +108,10 @@ void SoundGenerator::setup() {
 void SoundGenerator::loop() {
   while( micros() + full_buffer_time_ > next_time_)
   {
-    ESP_LOGD(TAG,"%d + %d > %d",  micros() , full_buffer_time_ , next_time_); 
+    ESP_LOGV(TAG,"%d + %d > %d",  micros() , full_buffer_time_ , next_time_); 
     next_time_ += full_buffer_time_;
     publish_audio();
   }
-  ESP_LOGD(TAG,"here"); 
 }
 
 void SoundGenerator::dump_config() {

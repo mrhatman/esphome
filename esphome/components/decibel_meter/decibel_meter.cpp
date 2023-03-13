@@ -38,7 +38,7 @@ void DecibelMeterSensor::set_audio_source(audio_source::AudioSource *source){
 	
 
 	
-	float decibels = (20.0* log10( (float)max / (float)max_sample)) - this->sensitivity_ + 95.0 ;
+	float decibels = (20.0* log10( (float)max / (float)max_sample)) + this->sensitivity_ + 95.0 ;
 	
 	this->publish_state((float)decibels);
 	
